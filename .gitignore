@@ -1,0 +1,10 @@
+# ビルド生成物（これらは保存不要）
+build/
+*.elf
+*.uf2
+*.bin
+*.map
+
+# VS Codeの設定（個人設定が含まれるため除外が一般的）
+.vscode/cmake-kits.json
+.vscode/ipch/

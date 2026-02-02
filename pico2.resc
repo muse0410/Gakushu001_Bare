@@ -1,0 +1,19 @@
+mach clear
+using sysbus
+mach create "Pico2"
+
+machine LoadPlatformDescription @C:/work/Pico2/Gakushu001/Gakushu_Bare001/Gakushu_Bare/pico2.repl
+
+# ELFをロード
+sysbus LoadELF @C:/work/Pico2/Gakushu001/Gakushu_Bare001/Gakushu_Bare/build/Gakushu_Bare.elf
+
+# --- 暴走を止める「強制セット」 ---
+# 1. ELFファイルが「ここから動け」と言っている正しいアドレスをPCに入れる
+cpu0 PC $entry_point
+# 2. 同時に、スタックポインタもバイナリの先頭から強制的に取る
+cpu0 SP `sysbus ReadDoubleWord 0x10000000`
+
+# もしこれでも 0x5 が出るなら、強制的に main の番地を直接指定
+# cpu0 PC `sysbus GetSymbolAddress "main"`
+
+start

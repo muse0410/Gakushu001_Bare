@@ -1,0 +1,18 @@
+cpu0: CPU.CortexM @ sysbus
+    cpuType: "cortex-m33"
+    nvic: nvic
+
+nvic: IRQControllers.NVIC @ sysbus 0xE000E000
+
+// 0x0 から 0xFFFFFFFF までの広大な範囲をカバーする設定
+flash: Memory.MappedMemory @ sysbus 0x10000000
+    size: 0x1000000
+
+sram: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x100000
+
+uart0: UART.PL011 @ sysbus 0x40034000
+
+logAddress: Python.PythonPeripheral @ sysbus 0xFF000000
+    size: 0x4
+    script: "if request.isWrite: self.Log(LogLevel.Info, chr(request.value))"
