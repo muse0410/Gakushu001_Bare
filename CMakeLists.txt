@@ -36,10 +36,13 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
-
-add_executable(
-    Gakushu_Bare main.cpp
-    lib/pico-ssd1306/ssd1306.cpp  # OLEDライブラリのソースを追加
+# 1. 実行ファイルに使用する全ファイルをリストアップ
+add_executable(Gakushu_Bare
+    main.cpp
+    driver/sht31/SHT31.cpp
+    lib/pico-ssd1306/ssd1306.cpp
+    lib/pico-ssd1306/frameBuffer/FrameBuffer.cpp
+    lib/pico-ssd1306/textRenderer/TextRenderer.cpp
 )
 
 pico_set_program_name(Gakushu_Bare "Gakushu_Bare")
@@ -49,22 +52,25 @@ pico_set_program_version(Gakushu_Bare "0.1")
 pico_enable_stdio_uart(Gakushu_Bare 0)
 pico_enable_stdio_usb(Gakushu_Bare 1)
 
-# Add the standard library to the build
-target_link_libraries(Gakushu_Bare
-        pico_stdlib)
-
 # Add the standard include files to the build
 target_include_directories(Gakushu_Bare PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(
-    Gakushu_Bare
-    hardware_i2c
-    )
+target_link_libraries(Gakushu_Bare
+    pico_stdlib
+    hardware_i2c   # これで hardware/i2c.h が見つかるようになります
+    hardware_uart
+)
 
-include_directories(lib/pico-ssd1306)
-
+include_directories(
+    interface
+    driver/sht31
+    lib/pico-ssd1306
+    lib/pico-ssd1306/frameBuffer
+    lib/pico-ssd1306/textRenderer
+    lib/pico-ssd1306/shaperenderer # 図形を描くなら必要
+)
 pico_add_extra_outputs(Gakushu_Bare)
 
