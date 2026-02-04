@@ -1,10 +1,23 @@
 # ビルド生成物（これらは保存不要）
 build/
+build_test/
 *.elf
 *.uf2
 *.bin
 *.map
 
+# CMakeの自動生成ファイル
+.cmake/
+_deps/
+
 # VS Codeの設定（個人設定が含まれるため除外が一般的）
 .vscode/cmake-kits.json
 .vscode/ipch/
+
+# Visual Studio 関連の一時ファイル
+.vs/
+out/
+*.user
+*.sln
+*.vcxproj
+*.filters
