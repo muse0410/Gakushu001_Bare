@@ -1,24 +1,28 @@
-#include "SHT31.h"
+﻿#include "SHT31.h"
+#include "pico/stdlib.h"
 
-// コンストラクタ（初期設定）
-SHT31::SHT31(i2c_inst_t* i2c, uint8_t addr) : _i2c(i2c), _addr(addr) {
-    // 必要ならここでI2Cの初期化チェックなどを行う
-}
+// コンストラクタ
+SHT31::SHT31(I2CInterface* i2c, uint8_t addr) : _i2c(i2c), _addr(addr) {}
 
-// SensorBase_Tempで約束した read() メソッドの実装
 SensorData SHT31::read() {
     SensorData data = {0.0f, 0.0f, false};
     uint8_t command[2] = {0x24, 0x00};
     uint8_t buffer[6];
 
-    // _i2c や _addr はクラスのメンバ変数を使用する
-    if (i2c_write_blocking(_i2c, _addr, command, 2, false) < 0) return data;
+    // Pico SDKの関数ではなく、インターフェースのメソッドを呼ぶ
+    // Pico SDKのハードウェア操作用関数の戻り値が0以下なら失敗である
+    if (_i2c->write(_addr, command, 2, false) < 0) return data;
     
+    // ※注意: テスト環境（PC）では sleep_ms は何もしないダミー関数をリンクするか
+    // #ifndef PICO_BOARD などで囲う必要があります
+#ifdef PICO_BOARD
     sleep_ms(20);
+#endif
 
-    if (i2c_read_blocking(_i2c, _addr, buffer, 6, false) < 0) return data;
+    // Pico SDKのハードウェア操作用関数の戻り値が0以下なら失敗である
+    if (_i2c->read(_addr, buffer, 6, false) < 0) return data;
 
-    // 計算処理（中身は前と同じ）
+    // 計算処理（ここはPCでも実機でも共通！）
     uint16_t rawTemp = (buffer[0] << 8) | buffer[1];
     data.temperature = -45.0f + 175.0f * (float)rawTemp / 65535.0f;
 

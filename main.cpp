@@ -4,6 +4,7 @@
 #include "hardware/uart.h"
 #include "TextRenderer/TextRenderer.h" // 文字表示にはこれが必要
 #include "SensorBase_Temp.h"
+#include "PicoI2C.h"
 
 #include "ssd1306.h" // LEDライブラリ
 #include "sht31.h"  // 温度センサ
@@ -44,10 +45,10 @@ bool repeating_timer_callback(struct repeating_timer *t) {
     return true; 
 }
 
+// ... (前略：includeやdefineはそのまま) ...
 
 int main()
 {
-
     stdio_init_all();
     // I2C Initialisation. Using it at 400Khz.
     i2c_init(I2C_PORT, 400*1000);
@@ -56,9 +57,15 @@ int main()
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
     gpio_pull_up(I2C_SCL);
-    // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
 
-    // Set up our UART
+    // --- 【追加・変更箇所】 ---
+    
+    // 1. 本物のI2C操作クラスを作る（TDD版で定義したもの）
+    PicoI2C real_i2c(I2C_PORT);
+
+    // 2. SHT31に、この「本物のI2C」の住所を渡す
+    SensorBase_Temp* mySensor = new SHT31(&real_i2c, 0x44);
+        // Set up our UART
     uart_init(UART_ID, BAUD_RATE);
     // Set the TX and RX pins by using the function select on the GPIO
     // Set datasheet for more information on function select
@@ -81,34 +88,28 @@ int main()
     // ライブラリの仕様に合わせてインスタンスを作成
     pico_ssd1306::SSD1306 display(I2C_PORT, OLED_ADDR, pico_ssd1306::Size::W128xH64);
 
-    // 温度センサの初期化
-    // 1. 使うセンサーを生成（ここだけセンサー名を指定）
-    SensorBase_Temp* mySensor = new SHT31(i2c0, 0x44);
-
     while (true) {
         ///////////////// 温度センサの処理 /////////////////
         // 2. 使うときは SensorBase_Temp 型として扱う
         // もしセンサーをBME280に変えても、この下の行は1文字も変えなくてOK！
         SensorData result = mySensor->read();
 
+        // OLED表示の更新（resultの中身を反映させる）
+        display.clear();
+        drawText(&display, font_8x8, "PICO 2 MONITOR", 0, 0);
+        
         if (result.success) {
             printf("Temp: %.1f\n", result.temperature);
+            
+            // 文字列を作ってOLEDに表示
+            char temp_str[16];
+            sprintf(temp_str, "Temp: %.1f C", result.temperature);
+            drawText(&display, font_8x8, temp_str, 0, 32);
+        } else {
+            drawText(&display, font_8x8, "Temp: ERROR", 0, 32);
         }
 
-        /////////////////   OLEDの処理    /////////////////
-        // 画面をクリア
-        display.clear();
-
-        // 文字を描画 (x, y, スケール, 文字列)
-        // ※ライブラリによって引数の順序が多少異なる場合があります
-        drawText(&display, font_8x8, "PICO 2 MONITOR", 0, 0);
-        drawText(&display, font_8x8, "System: OK", 0, 16);
-        drawText(&display, font_8x8, "Temp: --.- C", 0, 32);
-
-        // 実際に画面へ送信して更新
         display.sendBuffer();
-
-        printf("Hello, world!\n");
         sleep_ms(1000);
     }
 }
