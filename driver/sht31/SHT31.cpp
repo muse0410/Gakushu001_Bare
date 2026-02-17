@@ -1,5 +1,7 @@
 ﻿#include "SHT31.h"
-#include "pico/stdlib.h"
+#ifdef PICO_BOARD
+#include "pico/stdlib.h"  // Picoでビルドするときだけ読み込む
+#endif
 
 // コンストラクタ
 SHT31::SHT31(I2CInterface* i2c, uint8_t addr) : _i2c(i2c), _addr(addr) {}
@@ -25,6 +27,9 @@ SensorData SHT31::read() {
     // 計算処理（ここはPCでも実機でも共通！）
     uint16_t rawTemp = (buffer[0] << 8) | buffer[1];
     data.temperature = -45.0f + 175.0f * (float)rawTemp / 65535.0f;
+
+    // 温度異常フラグ
+    if(data.temperature > 30.0f)  data.is_high_temp_warning = true;
 
     uint16_t rawHum = (buffer[3] << 8) | buffer[4];
     data.humidity = 100.0f * (float)rawHum / 65535.0f;

@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -62,6 +62,7 @@ target_link_libraries(Gakushu_Bare
     pico_stdlib
     hardware_i2c   # これで hardware/i2c.h が見つかるようになります
     hardware_uart
+    pico_cyw43_arch_none  # ★これを追加（Wi-Fi通信はせず、LED等の制御のみの場合）
 )
 
 include_directories(

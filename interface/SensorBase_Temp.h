@@ -5,7 +5,8 @@
 struct SensorData {
     float temperature;
     float humidity;
-    bool success;
+    bool success;               //温度情報取得成功
+    bool is_high_temp_warning;  //異常温度発生のフラグ
 };
 
 // 抽象クラス（これ自体は実体を持たない「型」）

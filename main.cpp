@@ -5,6 +5,7 @@
 #include "TextRenderer/TextRenderer.h" // 文字表示にはこれが必要
 #include "SensorBase_Temp.h"
 #include "PicoI2C.h"
+#include "pico/cyw43_arch.h" // 無線チップ制御用ライブラリ
 
 #include "ssd1306.h" // LEDライブラリ
 #include "sht31.h"  // 温度センサ
@@ -32,14 +33,18 @@
 #define UART_RX_PIN 5
 
 // LEDピン設定
-const uint LED_PIN = PICO_DEFAULT_LED_PIN;
+// const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 
 // 周期タイマー用のコールバック関数
 bool repeating_timer_callback(struct repeating_timer *t) {
     static bool led_state = false;
     led_state = !led_state;
-    gpio_put(LED_PIN, led_state); // LEDの表示
-    
+
+    if(led_state == true){
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+    }else{
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
+    }
     // TeraTermへの送信
     printf("Timer Tick: LED is %s\n", led_state ? "ON" : "OFF");
     return true; 
@@ -50,6 +55,17 @@ bool repeating_timer_callback(struct repeating_timer *t) {
 int main()
 {
     stdio_init_all();
+
+ // 無線チップ（とLED）の初期化
+    if (cyw43_arch_init()) {
+        printf("Wi-Fi init failed\n");
+        return -1;
+    }
+
+    // while (true) {
+
+    // }
+
     // I2C Initialisation. Using it at 400Khz.
     i2c_init(I2C_PORT, 400*1000);
     
@@ -59,7 +75,11 @@ int main()
     gpio_pull_up(I2C_SCL);
 
     // --- 【追加・変更箇所】 ---
-    
+        
+    // 周期タイマーの設定（500msごと）
+    struct repeating_timer timer;
+    add_repeating_timer_ms(1000, repeating_timer_callback, NULL, &timer);
+
     // 1. 本物のI2C操作クラスを作る（TDD版で定義したもの）
     PicoI2C real_i2c(I2C_PORT);
 
@@ -71,10 +91,6 @@ int main()
     // Set datasheet for more information on function select
     gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-    
-    // 周期タイマーの設定（500msごと）
-    struct repeating_timer timer;
-    add_repeating_timer_ms(500, repeating_timer_callback, NULL, &timer);
 
     // Use some the various UART functions to send out data
     // In a default system, printf will also output via the default UART
@@ -104,7 +120,14 @@ int main()
             // 文字列を作ってOLEDに表示
             char temp_str[16];
             sprintf(temp_str, "Temp: %.1f C", result.temperature);
-            drawText(&display, font_8x8, temp_str, 0, 32);
+            drawText(&display, font_8x8, temp_str, 0, 16);
+
+            // --- 警告 ---
+            // TDDで検証済みのフラグをそのまま使う！
+            if (result.is_high_temp_warning) {
+                sprintf(temp_str, "!!! WARNING !!!");
+                drawText(&display, font_8x8, temp_str, 0, 32);
+            }
         } else {
             drawText(&display, font_8x8, "Temp: ERROR", 0, 32);
         }
